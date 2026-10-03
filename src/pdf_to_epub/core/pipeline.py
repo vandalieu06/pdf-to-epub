@@ -11,7 +11,7 @@ from docx import Document
 from .config import ConversionOptions
 from .docx.clean import clean_document
 from .docx.convert import DocxConversionError, to_docx
-from .docx.images import apply_pdf_images, extract_images, optimize_images
+from .docx.images import apply_pdf_images, extract_images, optimize_images, select_cover
 from .epub.builder import build_epub
 from .epub.split import split_chapters
 from .errors import DocxStageError, EpubStageError, PdfStageError, ValidationError
@@ -175,6 +175,16 @@ def run(
         raise EpubStageError(f"failed to build EPUB: {exc}") from exc
     report.output_epub = output
     report.elapsed_s = time.monotonic() - start
+
+    cover = select_cover(extraction.assets)
+    if cover is not None:
+        cover_ext = Path(cover.file_name).suffix.lstrip(".") or "jpg"
+        cover_path = workdir / f"cover.{cover_ext}"
+        try:
+            cover_path.write_bytes(cover.data)
+            report.cover_path = cover_path
+        except OSError:
+            pass
 
     if not options.keep_intermediate:
         _cleanup(

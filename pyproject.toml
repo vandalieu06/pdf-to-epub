@@ -3,7 +3,7 @@ name = "pdf-to-epub"
 version = "0.1.0"
 description = "Convert light-novel PDFs to EPUB via an editable DOCX intermediate format"
 readme = "README.md"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.15"
 dependencies = [
     "pymupdf>=1.26.7",
     "pdf2docx>=0.5.13",

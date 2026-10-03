@@ -33,6 +33,7 @@ def test_end_to_end(tmp_path: Path, pdf_with_image: Path) -> None:
     assert output.exists()
     assert report.chapters >= 1
     assert report.images_embedded >= 1
+    assert report.cover_path is not None and report.cover_path.exists()
 
     book = epub.read_epub(str(output))
     assert book.get_metadata("DC", "title")
@@ -65,3 +66,14 @@ def test_keep_intermediate(tmp_path: Path, repeated_pdf: Path) -> None:
 
     assert report.docx_path is not None and report.docx_path.exists()
     assert report.clean_pdf_path is not None and report.clean_pdf_path.exists()
+
+
+def test_cover_path_none_without_images(tmp_path: Path, repeated_pdf: Path) -> None:
+    output = tmp_path / "book.epub"
+    options = ConversionOptions(
+        input_pdf=repeated_pdf,
+        output_epub=output,
+        workdir=tmp_path / "work",
+    )
+    report = run(options)
+    assert report.cover_path is None

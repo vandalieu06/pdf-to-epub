@@ -29,7 +29,7 @@ _DOT_LEADER_RE = re.compile(r"\.{4,}")
 _LEADING_QUOTES = "«»\"'“”‘’ \t"
 
 
-def _heading_level(paragraph: Paragraph) -> int:
+def heading_level(paragraph: Paragraph) -> int:
     """Return the heading level (0 = body paragraph)."""
     style_name = ""
     if paragraph.style is not None and paragraph.style.name:
@@ -129,7 +129,7 @@ def split_chapters(
 
     for item in document.iter_inner_content():
         if isinstance(item, Paragraph):
-            level = _heading_level(item)
+            level = heading_level(item)
             if level == 1:
                 flush()
                 current_title = normalize_text(item.text) or fallback_title

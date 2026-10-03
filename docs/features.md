@@ -1,11 +1,16 @@
 # Features
 
-Estado de las funcionalidades de `pdf-to-epub` (v0.1.0).
+Estado de las funcionalidades de `pdf-to-epub` (v0.2.0).
 
 ## Implementadas
 
 - **CLI `pdf-to-epub convert`** con opciones de metadatos, portada, márgenes, imágenes y
   control de intermedios (ver `docs/uso.md`).
+- **Export de capítulos en texto plano** desde el DOCX intermedio
+  (`core/export.extract_docx_chapters`) con la misma detección de capítulos que el EPUB
+  rico, para que otros proyectos (p. ej. `translate_novels`) traduzcan/analicen el texto.
+- **Portada expuesta en el report** (`ConversionReport.cover_path`): la primera imagen del
+  PDF se escribe como `workdir/cover.<ext>` durante la conversión.
 - **Pipeline `pdf -> clean.pdf -> docx -> epub`** con etapas desacopladas y testeables.
 - **Lectura de metadatos del PDF** (título, autor, descripción, palabras clave, fechas,
   procedencia) y mapeo a Dublin Core en el EPUB, con fallbacks (UUID4, `es`, nombre de

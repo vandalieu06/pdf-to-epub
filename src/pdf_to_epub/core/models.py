@@ -87,6 +87,15 @@ class Chapter:
 
 
 @dataclass(slots=True)
+class TextChapter:
+    """A chapter rendered as plain paragraphs (no XHTML, no images)."""
+
+    title: str
+    paragraphs: list[str]
+    order: int = 0
+
+
+@dataclass(slots=True)
 class DocxCleanReport:
     """Outcome of the DOCX cleanup pass."""
 
@@ -113,6 +122,7 @@ class ConversionReport:
     output_epub: Path | None = None
     docx_path: Path | None = None
     clean_pdf_path: Path | None = None
+    cover_path: Path | None = None
     title: str | None = None
     author: str | None = None
     language: str | None = None

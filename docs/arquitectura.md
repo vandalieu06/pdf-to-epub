@@ -28,10 +28,11 @@ callback (`Callable[[str], None]`) que el CLI conecta a `rich`. `core/` no impor
 src/pdf_to_epub/
   cli.py                     Typer app; mapea excepciones a exit codes
   core/
-    models.py                PdfMetadata, TextBlock, ImageAsset, Chapter, ...
+    models.py                PdfMetadata, TextBlock, ImageAsset, Chapter, TextChapter, ...
     config.py                ConversionOptions (pydantic)
-    pipeline.py              orquesta las etapas 1-5
+    pipeline.py              orquesta las etapas 1-5; expone cover_path en el report
     errors.py                ValidationError, PdfStageError, DocxStageError, EpubStageError
+    export.py                extract_docx_chapters: DOCX -> capítulos en texto plano
     text.py                  normalize_text / is_page_number compartidos
     pdf/
       inspect.py             metadatos + parseo de fechas/autor/palabras clave
@@ -42,9 +43,18 @@ src/pdf_to_epub/
       images.py              extracción/dedup de imágenes, select_cover
     epub/
       metadata.py            PdfMetadata -> Dublin Core
-      split.py               DOCX -> capítulos (XHTML)
+      split.py               DOCX -> capítulos (XHTML); heading_level compartido
       builder.py             ensamblado del EPUB
 ```
+
+## Export de texto (spec 0.2.0/01)
+
+`core/export.extract_docx_chapters(docx_path, *, fallback_title)` recorre el mismo DOCX
+intermedio y devuelve `TextChapter(title, paragraphs, order)` con **texto plano**: concatena
+los `run.text`, aplana las tablas a texto y **ignora las imágenes**. Reutiliza
+`epub.split.heading_level` (renombrado de `_heading_level`), por lo que los límites de
+capítulo coinciden siempre con el EPUB rico. `ConversionReport.cover_path` se rellena durante
+`run()` con la primera imagen (portada) escrita en el workdir (`cover.<ext>`).
 
 ## Detección de cabeceras y pies
 
