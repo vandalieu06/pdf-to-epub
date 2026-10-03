@@ -2,7 +2,7 @@
 code: "01"
 title: "Export DOCX chapters as plain text and expose cover"
 project: "pdf-to-epub"
-status: in-progress
+status: completed
 version: "0.2.0"
 date: 2026-10-03
 tags: [spec, sdd]
