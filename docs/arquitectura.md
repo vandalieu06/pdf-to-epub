@@ -150,6 +150,24 @@ estilo es `Heading 1`/`Title` o si su texto (sin comillas/guillemets iniciales) 
 excluyen líneas con puntos de relleno (índices). El contenido previo al primer capítulo
 queda como capítulo inicial.
 
+### Modos de capítulos (`--split-mode`)
+
+- `auto` (defecto): resuelve a `webnovel` si hay ≥ 20 headings H1 en el DOCX; en el resto,
+  `book`.
+- `book`: para light novels. Si el DOCX tiene pocos headings, `core/pdf/chapters.py` busca
+  capítulos en el PDF: primero el outline (`doc.get_toc()`), y si no hay, bloques de texto
+  tapados por una imagen (títulos renderizados como arte). `core/docx/headings.py` inyecta
+  un `Heading 1` al inicio de la página correspondiente (mapeo página PDF → `w:sectPr` del
+  DOCX). No inyecta si la página ya tiene heading.
+- `webnovel`: para PDFs con muchas entregas. Descarta capítulos sin cuerpo (solo título) y
+  colapsa headings consecutivos con el mismo número (`Capítulo 01`/`Capítulo 1`) cuando uno
+  es un stub; así se eliminan las líneas de TOC/breadcrumb que repiten el título antes del
+  heading real.
+
+La normalización es compartida por `split_chapters` (EPUB rico) y
+`extract_docx_chapters` (texto plano), de modo que los capítulos de texto coinciden. Un
+front matter que solo contiene imágenes puede existir únicamente en el EPUB rico.
+
 ## Reflujo de párrafos
 
 `core/docx/reflow.py` corrige dos artefactos de `pdf2docx` (activo por defecto):

@@ -96,6 +96,15 @@ class TextChapter:
 
 
 @dataclass(slots=True)
+class PdfChapterStart:
+    """A chapter boundary detected directly in the PDF."""
+
+    page: int
+    title: str
+    source: str = "outline"
+
+
+@dataclass(slots=True)
 class DocxCleanReport:
     """Outcome of the DOCX cleanup pass."""
 
@@ -127,6 +136,8 @@ class ConversionReport:
     author: str | None = None
     language: str | None = None
     chapters: int = 0
+    split_mode: str = "auto"
+    pdf_chapters: int = 0
     images_extracted: int = 0
     images_embedded: int = 0
     images_dropped: int = 0

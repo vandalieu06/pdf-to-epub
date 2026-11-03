@@ -31,6 +31,9 @@ Estado de las funcionalidades de `pdf-to-epub` (v0.2.0).
   en el cuerpo.
 - **Detección de capítulos** por estilos Word y por marcadores de texto
   (`Capítulo`/`CAP N`/`Prólogo`/`Interludio`/`Epílogo`/...), con TOC en el EPUB.
+- **Modos de capítulos** (`--split-mode auto|book|webnovel`): `book` recupera títulos
+  renderizados como imagen (outline del PDF o texto oculto tras la ilustración); `webnovel`
+  descarta capítulos vacíos y líneas de TOC/breadcrumb duplicadas.
 - **Aviso de páginas ignoradas** por pdf2docx (`warning: pdf2docx ignored pages …`).
 - **Reparación de tablas falsas** de una fila (palabra por celda) que `pdf2docx` genera en
   líneas justificadas, para que el texto se copie como prosa; `--keep-tables` lo desactiva.

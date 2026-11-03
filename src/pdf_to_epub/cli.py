@@ -93,6 +93,11 @@ def convert(
     no_reflow: bool = typer.Option(
         False, "--no-reflow", help="Do not split/merge paragraphs."
     ),
+    split_mode: str = typer.Option(
+        "auto",
+        "--split-mode",
+        help="Chapter strategy: auto, book (light novel) or webnovel.",
+    ),
     header_margin: str | None = typer.Option(
         None, "--header-margin", help="Top margin band as a fraction, or 'auto'."
     ),
@@ -129,6 +134,8 @@ def convert(
 ) -> None:
     """Convert INPUT_PDF to EPUB."""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.WARNING)
+    if split_mode not in ("auto", "book", "webnovel"):
+        raise typer.BadParameter("--split-mode must be auto, book or webnovel")
 
     options = ConversionOptions(
         input_pdf=input_pdf,
@@ -139,6 +146,7 @@ def convert(
         clean_headers_footers=not no_clean,
         keep_tables=keep_tables,
         reflow_paragraphs=not no_reflow,
+        split_mode=split_mode,
         header_margin=_parse_margin(header_margin, "--header-margin"),
         footer_margin=_parse_margin(footer_margin, "--footer-margin"),
         min_header_ratio=min_header_ratio,
@@ -175,6 +183,7 @@ def convert(
     console.print(f"[green]✓[/green] {report.output_epub}")
     parts = [
         f"{report.chapters} chapters",
+        f"mode {report.split_mode}",
         f"{report.images_embedded} images",
         f"{report.header_footer_removals} header/footer lines removed",
     ]

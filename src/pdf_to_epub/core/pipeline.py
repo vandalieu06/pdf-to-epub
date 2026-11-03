@@ -11,11 +11,13 @@ from docx import Document
 from .config import ConversionOptions
 from .docx.clean import clean_document
 from .docx.convert import DocxConversionError, to_docx
+from .docx.headings import count_heading_paragraphs, inject_missing_headings
 from .docx.images import apply_pdf_images, extract_images, optimize_images, select_cover
 from .epub.builder import build_epub
-from .epub.split import split_chapters
+from .epub.split import resolve_split_mode, split_chapters
 from .errors import DocxStageError, EpubStageError, PdfStageError, ValidationError
 from .models import ConversionReport
+from .pdf.chapters import read_pdf_chapters
 from .pdf.headers_footers import clean_pdf
 from .pdf.images import extract_pdf_images
 from .pdf.inspect import read_metadata
@@ -109,6 +111,19 @@ def run(
             progress=progress,
         )
         document = Document(str(docx_path))
+        heading_count = count_heading_paragraphs(document)
+        split_mode = resolve_split_mode(options.split_mode, heading_count)
+        report.split_mode = split_mode
+        pdf_chapters = []
+        if split_mode == "book":
+            pdf_chapters = read_pdf_chapters(
+                input_pdf, allow_hidden=heading_count < 2
+            )
+            if pdf_chapters:
+                inject_missing_headings(document, pdf_chapters)
+                document.save(str(docx_path))
+                document = Document(str(docx_path))
+        report.pdf_chapters = len(pdf_chapters)
         extraction = extract_images(
             document,
             min_px=options.min_image_px,
@@ -152,6 +167,7 @@ def run(
             extraction.assets,
             fallback_title=fallback_title,
             skip_rel_ids=cover_rel_ids | banner_rel_ids,
+            mode=split_mode,
         )
     except Exception as exc:  # noqa: BLE001
         raise DocxStageError(f"failed to process DOCX: {exc}") from exc

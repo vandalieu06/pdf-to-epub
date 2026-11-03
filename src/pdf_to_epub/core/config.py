@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+SplitMode = Literal["auto", "book", "webnovel"]
 
 
 class ConversionOptions(BaseModel):
@@ -22,6 +25,7 @@ class ConversionOptions(BaseModel):
     min_header_ratio: float = Field(default=0.5, ge=0.0, le=1.0)
     keep_tables: bool = False
     reflow_paragraphs: bool = True
+    split_mode: SplitMode = "auto"
 
     title: str | None = None
     author: str | None = None

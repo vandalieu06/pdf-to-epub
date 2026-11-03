@@ -8,12 +8,13 @@ boundaries always match the rich EPUB output.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from docx import Document
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-from .epub.split import heading_level
+from .epub.split import heading_level, normalize_chapters
 from .models import TextChapter
 from .text import normalize_text
 
@@ -38,12 +39,13 @@ def extract_docx_chapters(
     docx_path: str | Path,
     *,
     fallback_title: str = "Book",
+    mode: str = "auto",
 ) -> list[TextChapter]:
     """Split a DOCX into chapters as plain paragraphs.
 
     Images are ignored; tables are flattened to text. The heading detection is
     shared with ``epub.split.split_chapters`` so chapter boundaries stay in
-    sync with the rich EPUB output.
+    sync with the rich EPUB output. ``mode`` applies the same chapter strategy.
     """
     document = Document(str(docx_path))
     chapters: list[TextChapter] = []
@@ -79,4 +81,4 @@ def extract_docx_chapters(
             paragraphs.extend(_table_text(item))
 
     flush()
-    return chapters
+    return cast(list[TextChapter], normalize_chapters(chapters, mode=mode))

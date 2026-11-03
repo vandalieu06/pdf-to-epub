@@ -79,6 +79,7 @@ Las ilustraciones y los títulos actúan de barrera: nunca se une texto a travé
 | `--no-clean` | Desactiva la limpieza de cabeceras/pies | — |
 | `--keep-tables` | No repara tablas falsas de una fila generadas por pdf2docx | repara |
 | `--no-reflow` | No separa/une párrafos automáticamente | refluye |
+| `--split-mode auto\|book\|webnovel` | Estrategia de capítulos: `book` para light novels (recupera títulos en imagen), `webnovel` para muchas entregas (descarta TOC/vacíos) | `auto` |
 | `--header-margin FLOAT\|auto` | Banda superior como fracción de la altura (`auto` = banda por defecto, 0.08) | `auto` (0.08) |
 | `--footer-margin FLOAT\|auto` | Banda inferior como fracción (`auto` = banda por defecto, 0.08) | `auto` (0.08) |
 | `--min-header-ratio FLOAT` | Fracción de páginas para considerar una línea repetida | `0.5` |
@@ -115,6 +116,10 @@ uv run pdf-to-epub convert limpio.pdf --no-clean
 # EPUB más ligero (más compresión) o conservar las imágenes originales
 uv run pdf-to-epub convert novela.pdf --image-quality 75
 uv run pdf-to-epub convert novela.pdf --keep-original-images
+
+# Forzar la estrategia de capítulos
+uv run pdf-to-epub convert light-novel.pdf --split-mode book
+uv run pdf-to-epub convert webnovel.pdf --split-mode webnovel
 ```
 
 ## Códigos de salida

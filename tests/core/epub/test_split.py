@@ -141,3 +141,66 @@ def test_word_grid_table_is_repaired_before_rendering(tmp_path: Path) -> None:
     html = "\n".join(chapter.html for chapter in chapters)
     assert "<table" not in html
     assert "uno dos tres cuatro" in html
+
+
+def test_webnovel_drops_empty_chapters() -> None:
+    doc = Document()
+    doc.add_paragraph("Capítulo 1: Uno")
+    doc.add_paragraph("Capítulo 01: Uno")
+    doc.add_paragraph("Body one.")
+    doc.add_paragraph("Capítulo 2: Dos")
+    doc.add_paragraph("Capítulo 02: Dos")
+    doc.add_paragraph("Body two.")
+
+    chapters = split_chapters(doc, [], fallback_title="Book", mode="webnovel")
+
+    assert [c.title for c in chapters] == ["Capítulo 01: Uno", "Capítulo 02: Dos"]
+    assert [c.file_name for c in chapters] == ["chapter_0000.xhtml", "chapter_0001.xhtml"]
+
+
+def test_webnovel_merges_stub_with_same_number() -> None:
+    doc = Document()
+    doc.add_paragraph("Capítulo 5:")
+    doc.add_paragraph("Verdaderamente Hermoso")
+    doc.add_paragraph("Capítulo 05: Verdaderamente Hermoso")
+    doc.add_paragraph("Cuerpo largo. " * 200)
+
+    chapters = split_chapters(doc, [], fallback_title="Book", mode="webnovel")
+
+    assert len(chapters) == 1
+    assert chapters[0].title == "Capítulo 05: Verdaderamente Hermoso"
+    assert "Cuerpo largo." in chapters[0].html
+
+
+def test_book_keeps_duplicate_headings() -> None:
+    doc = Document()
+    doc.add_paragraph("Capítulo 1: Uno")
+    doc.add_paragraph("Capítulo 01: Uno")
+    doc.add_paragraph("Body one.")
+
+    chapters = split_chapters(doc, [], fallback_title="Book", mode="book")
+
+    assert [c.title for c in chapters] == ["Capítulo 1: Uno", "Capítulo 01: Uno"]
+
+
+def test_auto_uses_webnovel_with_many_headings() -> None:
+    doc = Document()
+    for number in range(20):
+        doc.add_paragraph(f"Capítulo {number + 1}")
+        doc.add_paragraph(f"Body {number + 1}.")
+
+    chapters = split_chapters(doc, [], fallback_title="Book", mode="auto")
+
+    assert len(chapters) == 20
+
+
+def test_auto_uses_book_with_few_headings() -> None:
+    doc = Document()
+    doc.add_paragraph("Capítulo 1")
+    doc.add_paragraph("Body one.")
+    doc.add_paragraph("Capítulo 2")
+    doc.add_paragraph("Body two.")
+
+    chapters = split_chapters(doc, [], fallback_title="Book", mode="auto")
+
+    assert [c.title for c in chapters] == ["Capítulo 1", "Capítulo 2"]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html as html_lib
 import re
+from typing import Any, cast
 
 from docx import Document
 from docx.table import Table
@@ -23,10 +24,114 @@ _NUMBERED_CHAPTER_RE = re.compile(
     r"^(?:cap\.?\s*\d+|cap[ií]tulo\s*\d+|chapter\s*\d+)",
     re.IGNORECASE,
 )
+_CHAPTER_NUMBER_RE = re.compile(
+    r"(?:cap[ií]tulo|chapter|cap\.?)\s*0*(\d+)",
+    re.IGNORECASE,
+)
 _MAX_CHAPTER_TITLE_LEN = 100
 _SENTENCE_END = (".", ",", ";", ":", "!", "?")
 _DOT_LEADER_RE = re.compile(r"\.{4,}")
 _LEADING_QUOTES = "«»\"'“”‘’ \t"
+_H1_RE = re.compile(r"^\s*<h1\b.*?</h1>", re.IGNORECASE | re.DOTALL)
+_STUB_MAX_CHARS = 1000
+_STUB_RATIO = 5
+
+
+def chapter_title(text: str) -> str | None:
+    """Return the normalized text when it looks like a chapter heading."""
+    raw = normalize_text(text)
+    if not raw or _DOT_LEADER_RE.search(raw):
+        return None
+    candidate = raw.lstrip(_LEADING_QUOTES)
+    if (
+        not candidate
+        or len(candidate) > _MAX_CHAPTER_TITLE_LEN
+        or not _CHAPTER_RE.match(candidate)
+    ):
+        return None
+    if candidate.endswith(_SENTENCE_END) and not _NUMBERED_CHAPTER_RE.match(candidate):
+        return None
+    return raw
+
+
+def chapter_number(title: str) -> int | None:
+    """Extract the chapter number from a title (`Capítulo 01` -> 1)."""
+    match = _CHAPTER_NUMBER_RE.search(title)
+    if match is None:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def resolve_split_mode(mode: str, headings: int) -> str:
+    """Resolve `auto` to `webnovel` or `book` from the detected heading count."""
+    if mode in ("book", "webnovel"):
+        return mode
+    return "webnovel" if headings >= 20 else "book"
+
+
+def _chapter_body(chapter: object) -> str:
+    html = getattr(chapter, "html", None)
+    if isinstance(html, str):
+        return re.sub(r"<[^>]+>", " ", _H1_RE.sub("", html, count=1))
+    paragraphs = getattr(chapter, "paragraphs", None)
+    if isinstance(paragraphs, list):
+        return "\n".join(str(paragraph) for paragraph in paragraphs)
+    return ""
+
+
+def _chapter_has_body(chapter: object) -> bool:
+    if _chapter_body(chapter).strip():
+        return True
+    html = getattr(chapter, "html", None)
+    return isinstance(html, str) and ("<img" in html or "<table" in html)
+
+
+def _chapter_size(chapter: object) -> int:
+    return len(_chapter_body(chapter).strip())
+
+
+def _renumber(chapters: list[Any]) -> None:
+    for index, chapter in enumerate(chapters):
+        chapter.order = index  # type: ignore[attr-defined]
+        if hasattr(chapter, "file_name"):
+            chapter.file_name = f"chapter_{index:04d}.xhtml"  # type: ignore[attr-defined]
+
+
+def normalize_chapters(chapters: list[Any], *, mode: str = "auto") -> list[Any]:
+    """Apply the book/webnovel chapter strategy and renumber the result."""
+    resolved = mode
+    if resolved == "auto":
+        resolved = "webnovel" if len(chapters) >= 20 else "book"
+    if resolved != "webnovel":
+        _renumber(chapters)
+        return chapters
+
+    kept = [chapter for chapter in chapters if _chapter_has_body(chapter)]
+    if not kept:
+        kept = list(chapters)
+
+    merged: list[Any] = []
+    for chapter in kept:
+        number = chapter_number(getattr(chapter, "title", ""))
+        if merged and number is not None:
+            previous = merged[-1]
+            previous_number = chapter_number(getattr(previous, "title", ""))
+            if previous_number == number:
+                previous_size = _chapter_size(previous)
+                current_size = _chapter_size(chapter)
+                small, large = sorted((previous_size, current_size))
+                if small < _STUB_MAX_CHARS and small * _STUB_RATIO < large:
+                    if current_size > previous_size:
+                        merged[-1] = chapter
+                    continue
+        merged.append(chapter)
+    if not merged:
+        merged = kept
+    _renumber(merged)
+    return merged
 
 
 def heading_level(paragraph: Paragraph) -> int:
@@ -42,15 +147,7 @@ def heading_level(paragraph: Paragraph) -> int:
             return 1
     if style_name == "Title":
         return 1
-    raw = normalize_text(paragraph.text)
-    if not raw or _DOT_LEADER_RE.search(raw):
-        return 0
-    text = raw.lstrip(_LEADING_QUOTES)
-    if not text or len(text) > _MAX_CHAPTER_TITLE_LEN or not _CHAPTER_RE.match(text):
-        return 0
-    if text.endswith(_SENTENCE_END) and not _NUMBERED_CHAPTER_RE.match(text):
-        return 0
-    return 1
+    return 1 if chapter_title(paragraph.text) is not None else 0
 
 
 def _render_paragraph(paragraph: Paragraph, rel_to_file: dict[str, str]) -> str:
@@ -96,11 +193,13 @@ def split_chapters(
     *,
     fallback_title: str = "Book",
     skip_rel_ids: set[str] | None = None,
+    mode: str = "auto",
 ) -> list[Chapter]:
     """Split a DOCX into chapters, rendering each body to XHTML.
 
     `skip_rel_ids` lists image relationships that must not be rendered inline (for
-    example, the cover, which is promoted to the EPUB cover page).
+    example, the cover, which is promoted to the EPUB cover page). `mode` selects the
+    chapter strategy (`auto`, `book` or `webnovel`).
     """
     skip = skip_rel_ids or set()
     rel_to_file = {
@@ -149,4 +248,4 @@ def split_chapters(
                 body.append(rendered_table)
 
     flush()
-    return chapters
+    return cast(list[Chapter], normalize_chapters(chapters, mode=mode))
